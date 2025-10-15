@@ -1,3 +1,4 @@
+// userController.js
 const { validationResult } = require('express-validator');
 const { success, failure } = require('../utils/response');
 const { sanitizePayload } = require('../utils/sanitize');
@@ -11,7 +12,15 @@ const getMeta = (req) => ({
   body: sanitizePayload(req.body)
 });
 
-// 🔹 Login Customer
+/**
+ * Description: POST /login (Auth: None)
+ * Parameters:
+ *   - params: {}
+ *   - query: {}
+ *   - body: { email, password }
+ * Result: { data, statusFlag, errorCode }
+ * Middleware: []
+ */
 exports.loginCustomer = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -26,7 +35,15 @@ exports.loginCustomer = async (req, res) => {
   }
 };
 
-// 🔹 Register Customer
+/**
+ * Description: POST /register (Auth: None)
+ * Parameters:
+ *   - params: {}
+ *   - query: {}
+ *   - body: { name, email, password, phone, address }
+ * Result: { data, statusFlag, errorCode }
+ * Middleware: []
+ */
 exports.registerCustomer = async (req, res) => {
   try {
     const errors = validationResult(req);

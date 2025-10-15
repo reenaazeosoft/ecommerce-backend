@@ -36,7 +36,7 @@ const upload = multer({
 // 🛒 POST /api/seller/products
 // Description: Add a new product (seller only)
 router.post(
-  '/products',
+  '/',
   auth, // 🔐 Requires seller login (JWT)
   upload.array('images', 5), // 🖼️ Allow up to 5 images
   [

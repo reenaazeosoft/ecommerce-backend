@@ -1,3 +1,4 @@
+// server.js
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -7,6 +8,8 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const config = require('./config/config');
 const { initRedis } = require('./config/redis');
+
+// Routes
 const adminRoutes = require('./routes/admin');
 const sellerRoutes = require('./routes/seller');
 const customerRoutes = require('./routes/customer');
@@ -14,16 +17,8 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const productRoutes = require('./routes/productRoutes');
 
 const app = express();
-// connect to MongoDB
-mongoose.connect(config.db.uri)
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
 
-// start server
-app.listen(config.port, () => {
-  console.log(`🚀 Server running on port ${config.port} in ${config.env} mode`);
-});
-// Security + middlewares
+// ==================== Security & Middlewares ====================
 app.use(helmet());
 app.use(express.json());
 app.use(morgan('dev'));
@@ -36,30 +31,42 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Routes
+// ==================== Routes ====================
 app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/customer', customerRoutes);
+app.use('/api/admin', categoryRoutes);
+app.use('/api/seller/products', productRoutes);
 
-// Global error handler
+// ==================== Global Error Handler ====================
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(err.status || 500).json({ message: err.message || 'Server error' });
+  res.status(err.status || 500).json({
+    statusFlag: 0,
+    errorCode: err.status || 500,
+    message: err.message || 'Internal Server Error',
+    data: [],
+  });
 });
 
+// ==================== Startup Sequence ====================
+(async () => {
+  try {
+    // 1️⃣ Connect MongoDB
+    await mongoose.connect(config.db.uri);
+    console.log('✅ MongoDB connected');
 
-// Connect to MongoDB and start
-const PORT = process.env.PORT || 4000;
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('MongoDB connected');
-    app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
-  })
-  .catch(err => {
-    console.error('MongoDB connection error:', err);
+    // 2️⃣ Initialize Redis
+    await initRedis();
+    console.log('✅ Redis initialized');
+
+    // 3️⃣ Start server only after both are ready
+    const PORT = config.port || process.env.PORT || 4000;
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT} in ${config.env} mode`);
+    });
+  } catch (err) {
+    console.error('❌ Startup Error:', err.message);
     process.exit(1);
-  });
-
-app.use('/api/admin', categoryRoutes);
-app.use('/api/seller', productRoutes);
-
+  }
+})();

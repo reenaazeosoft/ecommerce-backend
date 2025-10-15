@@ -1,3 +1,4 @@
+// categoryController.js
 const { validationResult } = require('express-validator');
 const { success, failure } = require('../utils/response');
 const { sanitizePayload } = require('../utils/sanitize');
@@ -11,7 +12,21 @@ const getMeta = (req) => ({
   body: sanitizePayload(req.body)
 });
 
-// 🔹 Create Category
+/**
+ * Description: POST /categories (Auth: Admin)
+ * Purpose: Create a new product category (supports nested categories).
+ * Parameters:
+ *   - params: {}
+ *   - query: {}
+ *   - body: {
+ *       name: string (required),
+ *       description?: string (optional),
+ *       parentId?: string (MongoID, optional)
+ *     }
+ *   - file: image (optional, .jpg/.jpeg/.png, stored in /uploads/categories/)
+ * Result: { data, statusFlag, errorCode }
+ * Middleware: [auth, upload.single('image')]
+ */
 exports.createCategory = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -26,7 +41,16 @@ exports.createCategory = async (req, res) => {
   }
 };
 
-// 🔹 Delete Category
+/**
+ * Description: DELETE /categories/:id (Auth: Admin)
+ * Purpose: Permanently delete a category by its ID.
+ * Parameters:
+ *   - params: { id }
+ *   - query: {}
+ *   - body: {}
+ * Result: { data, statusFlag, errorCode }
+ * Middleware: [auth]
+ */
 exports.deleteCategory = async (req, res) => {
   try {
     const data = await Service.deleteCategory(req.params.id);
@@ -38,7 +62,20 @@ exports.deleteCategory = async (req, res) => {
   }
 };
 
-// 🔹 Get All Categories
+/**
+ * Description: GET /categories (Auth: Admin)
+ * Purpose: Retrieve a paginated list of all categories with optional search.
+ * Parameters:
+ *   - params: {}
+ *   - query: {
+ *       page?: number,
+ *       limit?: number,
+ *       search?: string (optional)
+ *     }
+ *   - body: {}
+ * Result: { data, statusFlag, errorCode }
+ * Middleware: [auth]
+ */
 exports.getAllCategories = async (req, res) => {
   try {
     const data = await Service.getAllCategories(req.query);
@@ -50,7 +87,16 @@ exports.getAllCategories = async (req, res) => {
   }
 };
 
-// 🔹 Get Category by ID
+/**
+ * Description: GET /categories/:id (Auth: Admin)
+ * Purpose: Fetch category details by ID (including parent info if available).
+ * Parameters:
+ *   - params: { id }
+ *   - query: {}
+ *   - body: {}
+ * Result: { data, statusFlag, errorCode }
+ * Middleware: [auth]
+ */
 exports.getCategoryById = async (req, res) => {
   try {
     const data = await Service.getCategoryById(req.params.id);
@@ -62,7 +108,21 @@ exports.getCategoryById = async (req, res) => {
   }
 };
 
-// 🔹 Update Category
+/**
+ * Description: PUT /categories/:id (Auth: Admin)
+ * Purpose: Update category information (name, description, parentId, or image).
+ * Parameters:
+ *   - params: { id }
+ *   - query: {}
+ *   - body: {
+ *       name?: string,
+ *       description?: string,
+ *       parentId?: string (MongoID, optional)
+ *     }
+ *   - file: image (optional, .jpg/.jpeg/.png)
+ * Result: { data, statusFlag, errorCode }
+ * Middleware: [auth, upload.single('image')]
+ */
 exports.updateCategory = async (req, res) => {
   try {
     const errors = validationResult(req);
