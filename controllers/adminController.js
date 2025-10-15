@@ -203,47 +203,29 @@ exports.getSellerById = async (req, res) => {
 };
 
 /**
- * Description: PUT /sellers/:id/approve (Auth: Admin)
+ * Description: PUT /sellers/:id/status (Auth: Admin)
+ * Purpose: Approve or reject a seller based on "status" in request body.
  * Parameters:
  *   - params: { id }
- *   - query: {}
- *   - body: {}
+ *   - body: { status: "approved" | "rejected", reason?: string }
  * Result: { data, statusFlag, errorCode }
  * Middleware: [authAdmin]
  */
-exports.approveSeller = async (req, res) => {
+exports.updateSellerStatus = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return failure(res, 'Validation failed', 422, errors.array());
+    const { id } = req.params;
+    const { status, reason } = req.body;
 
-    const data = await Service.approveSeller(req.params.id, req.user);
-    console.log(`[Controller:approveSeller] SUCCESS`, { statusFlag: 1, request: getMeta(req) });
-    return success(res, 'Seller approved successfully', data);
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value. Use "approved" or "rejected".' });
+    }
+
+    const data = await Service.updateSellerStatus(id, req.user, status, reason);
+
+    console.log(`[Controller:adminController.updateSellerStatus] SUCCESS`, { statusFlag: 1 });
+    return success(res, `Seller ${status} successfully`, data);
   } catch (err) {
-    console.error(`[Controller:approveSeller] ERROR`, err);
-    return failure(res, err.message || 'Internal Server Error', 500);
-  }
-};
-
-/**
- * Description: PUT /sellers/:id/reject (Auth: Admin)
- * Parameters:
- *   - params: { id }
- *   - query: {}
- *   - body: { reason }
- * Result: { data, statusFlag, errorCode }
- * Middleware: [authAdmin]
- */
-exports.rejectSeller = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return failure(res, 'Validation failed', 422, errors.array());
-
-    const data = await Service.rejectSeller(req.params.id, req.user, req.body.reason);
-    console.log(`[Controller:rejectSeller] SUCCESS`, { statusFlag: 1, request: getMeta(req) });
-    return success(res, 'Seller rejected successfully', data);
-  } catch (err) {
-    console.error(`[Controller:rejectSeller] ERROR`, err);
+    console.error(`[Controller:adminController.updateSellerStatus] ERROR`, err);
     return failure(res, err.message || 'Internal Server Error', 500);
   }
 };

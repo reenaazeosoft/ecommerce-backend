@@ -1,6 +1,6 @@
 const express = require('express');
 const { body, query } = require('express-validator');
-const { login, getMe, getAllUsers,getUserById ,createUser,updateUser,deleteUser,getAllSellers,getSellerById,approveSeller,rejectSeller,deleteSeller} = require('../controllers/adminController');
+const { login, getMe, getAllUsers,getUserById ,createUser,updateUser,deleteUser,getAllSellers,getSellerById,updateSellerStatus,deleteSeller} = require('../controllers/adminController');
 const authAdmin = require('../middleware/auth'); // already exists
 const isAdmin = require('../middleware/isAdmin'); // create this file
 const router = express.Router();
@@ -81,8 +81,9 @@ router.get(
   getSellerById
 );
 
-router.put('/sellers/:id/approve', authAdmin, approveSeller);
-router.put('/sellers/:id/reject', authAdmin, rejectSeller);
+// Single route for approve/reject seller
+router.put('/sellers/:id/status', authAdmin, updateSellerStatus);
+
 router.delete('/sellers/:id', authAdmin, deleteSeller);
 
 
