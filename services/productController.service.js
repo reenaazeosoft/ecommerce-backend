@@ -2,66 +2,115 @@
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const Customer = require('../models/User');
 const { getClient } = require('../config/redis');
 
 module.exports = {
-  async addProduct(body, user, files) {
-    // safely get Redis client
-    const redis = getClient();
-
-    const { name, description, price, stock, categoryId } = body;
-
-    // 1️⃣ Validate category
-    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
-      throw new Error('Invalid category ID');
+  /**
+   * Add Product Review (Customer)
+   * Description: Adds a customer review with rating and comment to a product.
+   */
+  async addProductReview(productId, { rating, comment }, customerId) {
+    // 1️⃣ Validate product ID
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      throw new Error('Invalid product ID');
     }
 
-    const categoryExists = await Category.findById(categoryId);
-    if (!categoryExists) {
-      throw new Error('Category not found');
+    // 2️⃣ Validate rating range
+    if (!rating || rating < 1 || rating > 5) {
+      throw new Error('Rating must be between 1 and 5');
     }
 
-    // 2️⃣ Handle image uploads
-    let images = [];
-    if (files && files.length > 0) {
-      images = files.map((f) => `/uploads/products/${f.filename}`);
+    // 3️⃣ Validate comment
+    if (!comment || !comment.trim()) {
+      throw new Error('Comment cannot be empty');
     }
 
-    // 3️⃣ Create and save product
-    const newProduct = new Product({
-      name,
-      description,
-      price,
-      stock,
-      categoryId,
-      sellerId: user.id,
-      images,
-    });
+    // 4️⃣ Find product
+    const product = await Product.findById(productId);
+    if (!product) throw new Error('Product not found');
 
-    await newProduct.save();
+    // 5️⃣ Verify customer
+    const customer = await Customer.findById(customerId).select('name email');
+    if (!customer) throw new Error('Customer not found');
 
-    // 4️⃣ Safely cache product list (ignore if Redis unavailable)
+    // 6️⃣ Create review object
+    const review = {
+      customerId,
+      name: customer.name,
+      rating,
+      comment,
+      createdAt: new Date(),
+    };
+
+    // 7️⃣ Push to reviews array
+    product.reviews = product.reviews || [];
+    product.reviews.push(review);
+
+    // 8️⃣ Recalculate average rating
+    product.rating =
+      product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length;
+
+    await product.save();
+
+    // 9️⃣ Optionally cache product reviews
     try {
+      const redis = getClient();
       if (redis) {
-        // fetch all products again to cache full list
-        const allProducts = await Product.find().lean();
-        await redis.setEx('products:all', 600, JSON.stringify(allProducts));
-        console.log('💾 Products cached in Redis');
-      } else {
-        console.warn('⚠️ Redis not initialized — skipping cache write');
+        await redis.setEx(
+          `product:${productId}:reviews`,
+          600,
+          JSON.stringify(product.reviews)
+        );
+        console.log(`💾 Cached reviews for product ${productId}`);
       }
     } catch (err) {
-      console.error('Redis cache error:', err.message);
+      console.warn('Redis cache skip:', err.message);
     }
 
-    // 5️⃣ Return newly created product
-    return {
-      id: newProduct._id,
-      name: newProduct.name,
-      price: newProduct.price,
-      stock: newProduct.stock,
-      categoryId: newProduct.categoryId,
-      images: newProduct.images,
-    };
+    // 🔟 Return added review
+    return review;
   },
+  /**
+ * Description: Get all reviews for a product
+ */
+async getProductReviews(productId) {
+  // 1️⃣ Validate product ID
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new Error('Invalid product ID');
+  }
+
+  const redis = getClient();
+
+  // 2️⃣ Try cache first
+  try {
+    if (redis) {
+      const cached = await redis.get(`product:${productId}:reviews`);
+      if (cached) {
+        console.log(`⚡ Redis: fetched cached reviews for product ${productId}`);
+        return JSON.parse(cached);
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ Redis cache read skipped:', err.message);
+  }
+
+  // 3️⃣ Query DB
+  const product = await Product.findById(productId).select('reviews').lean();
+  if (!product) throw new Error('Product not found');
+
+  const reviews = product.reviews || [];
+
+  // 4️⃣ Cache for 10 min
+  try {
+    if (redis) {
+      await redis.setEx(`product:${productId}:reviews`, 600, JSON.stringify(reviews));
+      console.log(`💾 Cached reviews for product ${productId}`);
+    }
+  } catch (err) {
+    console.warn('⚠️ Redis cache write skipped:', err.message);
+  }
+
+  return reviews;
+},
 };

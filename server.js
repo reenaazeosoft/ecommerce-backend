@@ -15,7 +15,11 @@ const sellerRoutes = require('./routes/seller');
 const customerRoutes = require('./routes/customer');
 const categoryRoutes = require('./routes/categoryRoutes');
 const productRoutes = require('./routes/productRoutes');
-
+const adminProductRoute = require('./routes/adminProductRoute');
+const sellerProductRoute = require('./routes/sellerProductRoute');
+const publicRoute = require('./routes/publicRoute');
+const customerCartRoute = require('./routes/customerCartRoute');
+const customerOrderRoute = require('./routes/customerOrderRoute');
 const app = express();
 
 // ==================== Security & Middlewares ====================
@@ -33,10 +37,15 @@ app.use(limiter);
 
 // ==================== Routes ====================
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/categories', categoryRoutes);
+app.use('/api/admin/products', adminProductRoute);
+// app.use('/api/products/review', productRoutes);
+
+// seller apis Route
 app.use('/api/seller', sellerRoutes);
+app.use('/api/seller/products', sellerProductRoute);
 app.use('/api/customer', customerRoutes);
-app.use('/api/admin', categoryRoutes);
-app.use('/api/seller/products', productRoutes);
+app.use('/api/customer/cart', customerCartRoute);
 
 // ==================== Global Error Handler ====================
 app.use((err, req, res, next) => {
@@ -48,6 +57,14 @@ app.use((err, req, res, next) => {
     data: [],
   });
 });
+
+// public routes 
+app.use('/api/public', publicRoute);
+app.use('/api/products', productRoutes);
+
+
+// make orders
+app.use('/api/customer/orders', customerOrderRoute);
 
 // ==================== Startup Sequence ====================
 (async () => {

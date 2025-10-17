@@ -1,5 +1,5 @@
 // sellerController.service.js
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
@@ -83,21 +83,34 @@ module.exports = {
   },
 
   async registerSeller(body) {
-    const { name, email, password, phone, storeName, address } = body;
-    const existing = await Seller.findOne({ email: email.toLowerCase() });
-    if (existing) throw new Error('Email already registered');
+  const { name, email, password, phone, storeName, address } = body;
 
-    const seller = new Seller({ name, email, password, phone, storeName, address });
-    await seller.save();
-    return {
-      id: seller._id,
-      name: seller.name,
-      email: seller.email,
-      phone: seller.phone,
-      storeName: seller.storeName,
-      address: seller.address
-    };
-  },
+  const existing = await Seller.findOne({ email: email.toLowerCase() });
+  if (existing) throw new Error('Email already registered');
+
+  // ✅ hash the password before saving
+  const hashed = await bcrypt.hash(password, 10);
+
+  const seller = new Seller({
+    name,
+    email: email.toLowerCase(),
+    password: hashed,
+    phone,
+    storeName,
+    address,
+  });
+
+  await seller.save();
+
+  return {
+    id: seller._id,
+    name: seller.name,
+    email: seller.email,
+    phone: seller.phone,
+    storeName: seller.storeName,
+    address: seller.address,
+  };
+},
 
   async updateSellerProfile(body, user, file) {
     const sellerId = user.id;

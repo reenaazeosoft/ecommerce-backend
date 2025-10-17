@@ -2,6 +2,13 @@ const mongoose = require('mongoose');
 
 // 🧠 Product Schema
 // Each product belongs to a category and a seller
+const reviewSchema = new mongoose.Schema({
+  customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  name: String,
+  rating: { type: Number, required: true },
+  comment: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+});
 const productSchema = new mongoose.Schema(
   {
     name: {
@@ -44,7 +51,9 @@ const productSchema = new mongoose.Schema(
     createdAt: {
       type: Date,
       default: Date.now
-    }
+    },
+  rating: { type: Number, default: 0 },
+  reviews: [reviewSchema],
   },
   { timestamps: true }
 );

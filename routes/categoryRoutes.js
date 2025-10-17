@@ -21,7 +21,7 @@ const upload = multer({ storage });
 
 // ✅ Create Category
 router.post(
-  '/categories',
+  '/',
   auth, // ensure admin is authenticated
   upload.single('image'),
   [
