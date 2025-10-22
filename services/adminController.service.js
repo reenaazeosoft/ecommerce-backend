@@ -111,7 +111,10 @@ module.exports = {
 
   async login(body) {
     const { email, password } = body;
+    console.log(email);
+    console.log(password);
     const user = await User.findOne({ email: email.toLowerCase() });
+    console.log(user);
     if (!user) throw new Error('Invalid credentials');
 
     const isMatch = await bcrypt.compare(password, user.password);

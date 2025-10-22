@@ -4,7 +4,7 @@
  */
 const express = require('express');
 const router = express.Router();
-const { placeOrder ,getAllCustomerOrders,getCustomerOrderById} = require('../controllers/customerOrderController');
+const { placeOrder ,getAllCustomerOrders,getCustomerOrderById,cancelCustomerOrder,trackCustomerOrder} = require('../controllers/customerOrderController');
 const authUser = require('../middleware/authUser');
 const { body,query,param } = require('express-validator');
 
@@ -47,5 +47,26 @@ router.get(
   authUser,
   [param('id').isMongoId().withMessage('Invalid order ID')],
   getCustomerOrderById
+);
+
+/**
+ * Description: PUT /api/customer/orders/:id/cancel
+ * Purpose: Customer cancels order before shipping
+ */
+router.put(
+  '/:id/cancel',
+  authUser,
+  [param('id').isMongoId().withMessage('Invalid order ID')],
+  cancelCustomerOrder
+);
+
+/**
+ * Description: GET /api/customer/orders/:id/track (Auth: Customer)
+ */
+router.get(
+  '/:id/track',
+  authUser,
+  [param('id').isMongoId().withMessage('Invalid order ID')],
+  trackCustomerOrder
 );
 module.exports = router;

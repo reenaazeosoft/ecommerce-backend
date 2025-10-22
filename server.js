@@ -20,6 +20,10 @@ const sellerProductRoute = require('./routes/sellerProductRoute');
 const publicRoute = require('./routes/publicRoute');
 const customerCartRoute = require('./routes/customerCartRoute');
 const customerOrderRoute = require('./routes/customerOrderRoute');
+const sellerOrderRoute = require('./routes/sellerOrderRoute');
+const customerPaymentRoute = require('./routes/customerPaymentRoute');
+
+
 const app = express();
 
 // ==================== Security & Middlewares ====================
@@ -65,6 +69,11 @@ app.use('/api/products', productRoutes);
 
 // make orders
 app.use('/api/customer/orders', customerOrderRoute);
+app.use('/api/customer/payments', customerPaymentRoute);
+
+//seller orders
+app.use('/api/seller/orders', sellerOrderRoute);
+
 
 // ==================== Startup Sequence ====================
 (async () => {

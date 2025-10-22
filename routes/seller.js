@@ -90,4 +90,5 @@ router.post(
   forgotSellerPassword
 );
 
+
 module.exports = router;

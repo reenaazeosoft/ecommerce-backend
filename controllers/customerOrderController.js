@@ -84,3 +84,49 @@ exports.getCustomerOrderById = async (req, res) => {
   }
 };
 
+/**
+ * Description: PUT /api/customer/orders/:id/cancel (Auth: Customer)
+ * Purpose: Allow customer to cancel an order before it is shipped or delivered.
+ */
+exports.cancelCustomerOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return failure(res, 'Validation failed', 422, errors.array());
+
+    const data = await Service.cancelCustomerOrder(req.user.id, id, reason);
+    return success(res, 'Order cancelled successfully', data);
+  } catch (err) {
+    console.error(`[Controller:customerOrderController.cancelCustomerOrder] ERROR`, err);
+
+    if (err.message === 'Order not found')
+      return failure(res, err.message, 404);
+    if (err.statusCode === 409)
+      return failure(res, err.message, 409);
+
+    return failure(res, err.message || 'Internal Server Error', 500);
+  }
+};
+/**
+ * Description: GET /api/customer/orders/:id/track (Auth: Customer)
+ * Purpose: Retrieve tracking details for a specific order.
+ */
+exports.trackCustomerOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return failure(res, 'Validation failed', 422, errors.array());
+
+    const data = await Service.trackCustomerOrder(req.user.id, id);
+    if (!data) return failure(res, 'Order not found', 404);
+
+    return success(res, 'Tracking info fetched successfully', data);
+  } catch (err) {
+    console.error(`[Controller:customerOrderController.trackCustomerOrder] ERROR`, err);
+    if (err.message === 'Order not found') return failure(res, err.message, 404);
+    return failure(res, err.message || 'Internal Server Error', 500);
+  }
+};
+

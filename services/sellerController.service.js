@@ -137,5 +137,6 @@ module.exports = {
     if (!updated) throw new Error('Seller not found');
 
     return updated;
-  }
+  },
+  
 };

@@ -145,4 +145,105 @@ async getCustomerOrderById(customerId, orderId) {
     })),
   };
 },
+/**
+ * Cancel Order (Customer)
+ */
+async cancelCustomerOrder(customerId, orderId, reason) {
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    throw new Error('Invalid order ID');
+  }
+
+  const order = await Order.findOne({ _id: orderId, customerId });
+  if (!order) throw new Error('Order not found');
+
+  // Allowed cancellations: only before shipping
+  const nonCancellableStatuses = ['Shipped', 'Delivered', 'Cancelled'];
+  if (nonCancellableStatuses.includes(order.orderStatus)) {
+    const err = new Error(`Cannot cancel an order with status '${order.orderStatus}'`);
+    err.statusCode = 409; // conflict
+    throw err;
+  }
+
+  // Update order
+  order.orderStatus = 'Cancelled';
+  order.cancelReason = reason || 'Cancelled by customer';
+  order.cancelledAt = new Date();
+
+  await order.save();
+
+  return {
+    orderId: order._id,
+    orderStatus: order.orderStatus,
+    cancelReason: order.cancelReason,
+    cancelledAt: order.cancelledAt,
+  };
+},
+/**
+ * Track Order (Customer)
+ */
+async trackCustomerOrder(customerId, orderId) {
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    throw new Error('Invalid order ID');
+  }
+
+  const order = await Order.findOne({ _id: orderId, customerId })
+    .select(
+      'orderStatus paymentStatus paymentMethod totalAmount shippingAddress createdAt updatedAt cancelledAt cancelReason deliveredAt shippedAt processingAt'
+    )
+    .lean();
+
+  if (!order) throw new Error('Order not found');
+
+  // build timeline tracking info (you can extend this later)
+  const trackingSteps = [
+    {
+      status: 'Placed',
+      timestamp: order.createdAt,
+      message: 'Order placed successfully by customer',
+    },
+  ];
+
+  if (order.processingAt) {
+    trackingSteps.push({
+      status: 'Processing',
+      timestamp: order.processingAt,
+      message: 'Seller is preparing your order',
+    });
+  }
+
+  if (order.shippedAt) {
+    trackingSteps.push({
+      status: 'Shipped',
+      timestamp: order.shippedAt,
+      message: 'Order shipped and on its way',
+    });
+  }
+
+  if (order.deliveredAt) {
+    trackingSteps.push({
+      status: 'Delivered',
+      timestamp: order.deliveredAt,
+      message: 'Order delivered successfully',
+    });
+  }
+
+  if (order.orderStatus === 'Cancelled') {
+    trackingSteps.push({
+      status: 'Cancelled',
+      timestamp: order.cancelledAt,
+      message: order.cancelReason || 'Order cancelled',
+    });
+  }
+
+  return {
+    orderId: order._id,
+    currentStatus: order.orderStatus,
+    paymentStatus: order.paymentStatus,
+    paymentMethod: order.paymentMethod,
+    totalAmount: order.totalAmount,
+    shippingAddress: order.shippingAddress,
+    trackingSteps,
+  };
+}
 };
+
